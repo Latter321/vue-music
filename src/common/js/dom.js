@@ -7,7 +7,7 @@ export function addClass(el, className) {
 }
 
 export function hasClass(el, className) {
-  const reg = new RegExp('(^|\\s)' + className + '(\\s|$)')
+  const reg = new RegExp('(^|\\s)' + className + '(\\s|$)') // (\s|$)指有空白字符或者直接结束
   return reg.test(el.className)
 }
 

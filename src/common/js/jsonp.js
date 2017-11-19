@@ -1,7 +1,9 @@
 import originJSONP from 'jsonp'
 
+// jsonp的封装
 export default function jsonp(url, data, option) {
   url += (url.indexOf('?') < 0 ? '?' : '&') + param(data)
+  // 返回一个 Promise
   return new Promise((resolve, reject) => {
     originJSONP(url, option, (err, data) => {
       if (!err) {
