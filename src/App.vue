@@ -3,7 +3,10 @@
     <m-header></m-header>
     <!--标签小写-->
     <tab></tab>
-    <router-view></router-view>
+    <!--切换路由时，keep-alive会将dom缓存到内存中，可避免数据重复加载-->
+    <keep-alive>
+      <router-view></router-view>
+    </keep-alive>
   </div>
 </template>
 

@@ -88,7 +88,6 @@
               pageIndex -= 1
             }
             this.currentPageIndex = pageIndex
-            console.log(this.autoplay)
             if (this.autoPlay) {
               clearTimeout(this.timer)
               this._play()
@@ -107,6 +106,9 @@
             this.slider.goToPage(pageIndex, 0, 400)
           }, this.interval)
         }
+      },
+      destroy () {
+        clearTimeout(this.timer)
       }
     }
 </script>
