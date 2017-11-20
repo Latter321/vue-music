@@ -16,7 +16,7 @@ export function getRecommend() {
 export function getDiscList() {
   const url = '/api/getDiscList'
 
-  const data = Object.assign({}, commonParams, {
+  const data = Object.assign({}, commonParams, { // 参数不需要知道含义，保持一致就好
     platform: 'yqq',
     hostUin: 0,
     sin: 0,
@@ -27,6 +27,8 @@ export function getDiscList() {
     rnd: Math.random(),
     format: 'json'
   })
+
+  // return jsonp(url, data, options) // 报500的错。按理来说，一个jsonp请求不应该报服务端错误。
 
   return axios.get(url, {
     params: data

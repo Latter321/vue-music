@@ -5,12 +5,17 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import fastclik from 'fastclick'
+import VueLazyLoad from 'vue-lazyload'
 import 'common/stylus/index.styl'
 
 // fastclick的用法，绑定在body上，body中所有元素的click事件都不会再出现300毫秒延迟
 fastclik.attach(document.body)
 
 Vue.config.productionTip = false
+
+Vue.use(VueLazyLoad, {
+  loading: require('./common/image/default.png')
+})
 
 /* eslint-disable no-new */
 new Vue({

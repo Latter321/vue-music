@@ -39,9 +39,10 @@ const devWebpackConfig = merge(baseWebpackConfig, {
         let url = 'https://c.y.qq.com/splcloud/fcgi-bin/fcg_get_diss_by_tag.fcg'
         axios.get(url, {
           headers: {
-            referer: 'https://y.qq.com/portal/playlist.html'
+            // host: 'y.qq.com' // 域名
+            referer: 'https://y.qq.com/portal/playlist.html' // 请求的来源
           },
-          params: req.query
+          params: req.query // 从浏览器端发来的请求参数
         }).then((response) => {
           res.json(response.data)
         }).catch((e) => {
