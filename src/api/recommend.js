@@ -28,7 +28,7 @@ export function getDiscList() {
     format: 'json'
   })
 
-  // return jsonp(url, data, options) // 报500的错。按理来说，一个jsonp请求不应该报服务端错误。
+  // return jsonp(url, data, options) // 报500的错，报服务端错误。
 
   return axios.get(url, {
     params: data

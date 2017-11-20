@@ -19,6 +19,10 @@
         data: {
           type: Array,
           default: null
+        },
+        listenScroll: { // 是否需要监听滚动事件
+          type: Boolean,
+          default: false
         }
       },
       mounted () {
@@ -38,6 +42,12 @@
             probeType: this.probeType,
             click: this.click
           })
+          if (this.listenScroll) {
+            let me = this
+            this.scroll.on('scroll', (pos) => {
+              me.$emit('scroll', pos) // pos是位置对象，具有x和y轴的属性
+            })
+          }
         },
         enable () {
           this.scroll && this.scroll.enable()
