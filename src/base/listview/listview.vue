@@ -9,7 +9,7 @@
       <li v-for="group in data" class="list-group" ref="listGroup">
         <h2 class="list-group-title">{{group.title}}</h2>
         <ul>
-          <li class="list-group-item" v-for="item in group.items">
+          <li class="list-group-item" v-for="item in group.items" @click="selectItem(item)">
             <img class="avatar" v-lazy="item.avatar" alt="">
             <span class="name">{{item.name}}</span>
           </li>
@@ -91,6 +91,9 @@
       },
       scroll (pos) {
         this.scrollY = pos.y
+      },
+      selectItem (item) { // 基础组件，不需要写任何业务逻辑
+        this.$emit('select', item) // 把事件派发出去。通知外部组件发生了点击事件，并将item数据传出去
       },
       _scrollTo (index) {
         if (!index && index !== 0) {

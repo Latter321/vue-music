@@ -1,6 +1,8 @@
 <template>
     <div class="singer">
-      <list-view :data="singers"></list-view>
+      <list-view @select="selectSinger" :data="singers"></list-view>
+      <!--用来挂载子路由，singer-detail-->
+      <router-view></router-view>
     </div>
 </template>
 
@@ -9,6 +11,7 @@
     import ListView from 'base/listview/listview'
     import {getSingerList} from 'api/singer'
     import {ERR_OK} from 'api/config'
+    import {mapMutations} from 'vuex'
 
     const HOT_NAME = '热门'
     const HOT_SINGER_LEN = 10
@@ -23,6 +26,12 @@
         this._getSingerList()
       },
       methods: {
+        selectSinger (item) {
+          this.$router.push({ // this.$router 编程式跳转接口
+            path: `singer/${item.id}`
+          })
+          this.setSinger(item)
+        },
         _getSingerList () {
           getSingerList().then((res) => {
             if (res.code === ERR_OK) {
@@ -73,7 +82,10 @@
             return a.title.charCodeAt(0) - b.title.charCodeAt(0)
           })
           return hot.concat(ret)
-        }
+        },
+        ...mapMutations({
+          setSinger: 'SET_SINGER'
+        })
       },
       components: {
         ListView
