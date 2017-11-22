@@ -21,24 +21,22 @@ export function getData(el, name, val) {
   }
 }
 
+// 做css的兼容，加前缀webkit...
 let elementStyle = document.createElement('div').style
-
-// IIFE
+// 查看供应商
 let vendor = (() => {
   let transformNames = {
     webkit: 'webkitTransform',
     Moz: 'MozTransform',
-    O: 'OTransform',
+    o: 'oTransform',
     ms: 'msTransform',
     standard: 'transform'
   }
-
   for (let key in transformNames) {
     if (elementStyle[transformNames[key]] !== undefined) {
       return key
     }
   }
-
   return false
 })()
 
@@ -46,10 +44,8 @@ export function prefixStyle(style) {
   if (vendor === false) {
     return false
   }
-
   if (vendor === 'standard') {
     return style
   }
-  // 拼接 eg：webkitTransform
   return vendor + style.charAt(0).toUpperCase() + style.substr(1)
 }
