@@ -1,18 +1,135 @@
 <template>
       <div class="player" v-show="playlist.length>0">
-        <div class="normal-player" v-show="fullScreen">播放器</div>
-        <div class="mini-player" v-show="!fullScreen"></div>
+        <transition name="normal"
+                    @enter="enter"
+                    @after-enter="afterEnter"
+                    @leave="leave"
+                    @after-leave="afterLeave">
+          <div class="normal-player" v-show="fullScreen">
+            <div class="background">
+              <img :src="currentSong.image" alt="" width="100%" height="100%">
+            </div>
+            <div class="top">
+              <div class="back" @click="back">
+                <i class="icon-back"></i>
+              </div>
+              <h1 class="title" v-html="currentSong.name"></h1>
+              <h2 class="subtitle" v-html="currentSong.singer"></h2>
+            </div>
+            <div class="middle">
+              <div class="middle-l">
+                <div class="cd-wrapper" ref="cdWrapper">
+                  <div class="cd">
+                    <img :src="currentSong.image" alt="" class="image">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom">
+              <div class="operators">
+                <div class="icon i-left">
+                  <i class="icon-sequence"></i>
+                </div>
+                <div class="icon i-left">
+                  <i class="icon-prev"></i>
+                </div>
+                <div class="icon i-center">
+                  <i class="icon-play"></i>
+                </div>
+                <div class="icon i-right">
+                  <i class="icon-next"></i>
+                </div>
+                <div class="icon i-right">
+                  <i class="icon icon-not-favorite"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
+        <transition name="mini">
+          <div class="mini-player" v-show="!fullScreen" @click="open">
+            <div class="icon">
+              <img :src="currentSong.image" alt="" width="40" height="40">
+            </div>
+            <div class="text">
+              <h2 class="name" v-html="currentSong.name"></h2>
+              <p class="desc" v-html="currentSong.singer"></p>
+            </div>
+            <div class="control">
+            </div>
+            <div class="control">
+              <i class="icon-playlist"></i>
+            </div>
+          </div>
+        </transition>
       </div>
 </template>
 
 <script type="text/ecmascript-6">
-    import {mapGetters} from 'vuex'
+    import {mapGetters, mapMutations} from 'vuex'
+    import animations from 'create-keyframe-animation'
     export default {
       computed: {
         ...mapGetters([
           'fullScreen',
-          'playlist'
+          'playlist',
+          'currentSong'
         ])
+      },
+      methods: {
+        back () {
+          this.setFullScreen(false)
+        },
+        open () {
+          this.setFullScreen(true)
+        },
+        enter (el, done) { // done执行的时候会跳到下一个钩子函数afterEnter
+          const {x, y, scale} = this._getPosAndScale()
+          let animation = {
+            0: {
+              transform: `translate3D(${x}px,${y}px,0) scale(${scale})`
+            },
+            60: {
+              transform: `translate3D(0,0,0) scale(1.1)`
+            },
+            100: {
+              transform: `translate3D(0,0,0) scale(1)`
+            }
+          }
+          animations.registerAnimation({
+            name: 'move',
+            animation,
+            presets: {
+              duration: 400,
+              easing: 'linear'
+            }
+          })
+          animations.runAnimation(this.$refs.cdWrapper, 'move', done)
+        },
+        afterEnter () {
+          animations.unregisterAnimation('move')
+          this.$refs.cdWrapper.style.animatin = ''
+        },
+        leave (el, done) {},
+        afterLeave () {},
+        _getPosAndScale () { // 获取位置信息和缩放信息
+          const targetWidth = 40 // 小图的宽度
+          const paddingLeft = 40
+          const paddingBottom = 30
+          const paddingTop = 80 // cd到顶部的padding
+          const width = window.innerWidth * 0.8 // cd的宽度是80%
+          const scale = targetWidth / width // 初始缩放比例
+          const x = -(window.innerWidth / 2 - paddingLeft)
+          const y = window.innerHeight - paddingTop - width / 2 - paddingBottom // width/2就是height/2
+          return {
+            x,
+            y,
+            scale
+          }
+        },
+        ...mapMutations({
+          setFullScreen: 'SET_FULL_SCREEN'
+        })
       }
     }
 </script>
