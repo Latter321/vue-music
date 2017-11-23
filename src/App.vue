@@ -7,6 +7,7 @@
     <keep-alive>
       <router-view></router-view>
     </keep-alive>
+    <player></player>
   </div>
 </template>
 
@@ -14,11 +15,13 @@
 import MHeader from 'components/m-header/m-header'
 // import引入的本质上是Class，书写规范就是首字母大写
 import Tab from 'components/tab/tab'
+import Player from 'components/player/player'
 export default {
   name: 'app',
   components: {
     MHeader,
-    Tab
+    Tab,
+    Player
   }
 }
 </script>
