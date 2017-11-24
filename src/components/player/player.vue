@@ -26,18 +26,25 @@
               </div>
             </div>
             <div class="bottom">
+              <div class="progress-wrapper">
+                <span class="time time-l">{{format(currentTime)}}</span>
+                <div class="progress-bar-wrapper">
+                  <progress-bar :percent="percent"></progress-bar>
+                </div>
+                <span class="time time-r">{{format(currentSong.duration)}}</span>
+              </div>
               <div class="operators">
                 <div class="icon i-left">
                   <i class="icon-sequence"></i>
                 </div>
-                <div class="icon i-left">
-                  <i class="icon-prev"></i>
+                <div class="icon i-left" :class="disableCls">
+                  <i class="icon-prev" @click="prev"></i>
                 </div>
-                <div class="icon i-center">
+                <div class="icon i-center" :class="disableCls">
                   <i :class="playIcon" @click="togglePlaying"></i>
                 </div>
-                <div class="icon i-right">
-                  <i class="icon-next"></i>
+                <div class="icon i-right" :class="disableCls">
+                  <i class="icon-next" @click="next"></i>
                 </div>
                 <div class="icon i-right">
                   <i class="icon icon-not-favorite"></i>
@@ -63,7 +70,7 @@
             </div>
           </div>
         </transition>
-        <audio :src="currentSong.url" ref="audio"></audio>
+        <audio :src="currentSong.url" ref="audio" @canplay="ready" @error="error" @timeupdate="updateTime"></audio>
       </div>
 </template>
 
@@ -71,8 +78,15 @@
     import {mapGetters, mapMutations} from 'vuex'
     import {prefixStyle} from 'common/js/dom'
     import animations from 'create-keyframe-animation'
+    import ProgressBar from 'base/progress-bar/progress-bar'
     const transform = prefixStyle('transform')
     export default {
+      data () {
+        return {
+          songReady: false,
+          currentTime: 0
+        }
+      },
       computed: {
         playIcon () {
           return this.playing ? 'icon-pause' : 'icon-play'
@@ -83,11 +97,18 @@
         cdCls () {
           return this.playing ? 'play' : 'play pause'
         },
+        disableCls () {
+          return this.songReady ? '' : 'disable'
+        },
+        percent () {
+          return this.currentTime / this.currentSong.duration
+        },
         ...mapGetters([
           'fullScreen',
           'playlist',
           'currentSong',
-          'playing'
+          'playing',
+          'currentIndex'
         ])
       },
       methods: {
@@ -137,6 +158,51 @@
         togglePlaying () {
           this.setPlayingState(!this.playing)
         },
+        prev () {
+          if (!this.songReady) return // 设置在歌曲未准备好加载完时禁止切歌
+          let index = this.currentIndex - 1
+          if (index === -1) {
+            index = this.playlist.length - 1
+          }
+          this.setCurrentIndex(index)
+          if (!this.playing) {
+            this.togglePlaying()
+          }
+          this.songReady = false
+        },
+        next () {
+          if (!this.songReady) return // 避免快速切歌时，dom未加载完而导致异常
+          let index = this.currentIndex + 1
+          if (index === this.playlist.length) {
+            index = 0
+          }
+          this.setCurrentIndex(index)
+          if (!this.playing) {
+            this.togglePlaying()
+          }
+          this.songReady = false
+        },
+        ready () {
+          this.songReady = true
+        },
+        error () {},
+        updateTime (e) {
+          this.currentTime = e.target.currentTime // audio当前播放的时间
+        },
+        format (interval) { // 时间戳转换为时分秒格式
+          interval = interval | 0 // 向下取整
+          const minute = interval / 60 | 0
+          const second = this._pad(interval % 60)
+          return `${minute}:${second}`
+        },
+        _pad (num, n = 2) { // 第二个参数默认2.代表需要补的字符串的长度
+          let len = num.toString().length
+          while (len < n) {
+            num = '0' + num // 前面补0
+            len++
+          }
+          return num
+        },
         _getPosAndScale () { // 获取位置信息和缩放信息
           const targetWidth = 40 // 小图的宽度
           const paddingLeft = 40
@@ -154,7 +220,8 @@
         },
         ...mapMutations({ // mutation的映射
           setFullScreen: 'SET_FULL_SCREEN',
-          setPlayingState: 'SET_PLAYING_STATE'
+          setPlayingState: 'SET_PLAYING_STATE',
+          setCurrentIndex: 'SET_CURRENT_INDEX'
         })
       },
       watch: {
@@ -169,6 +236,9 @@
             newPlaying ? audio.play() : audio.pause()
           })
         }
+      },
+      components: {
+        ProgressBar
       }
     }
 </script>
