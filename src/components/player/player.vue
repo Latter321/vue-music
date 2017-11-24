@@ -19,7 +19,7 @@
             <div class="middle">
               <div class="middle-l">
                 <div class="cd-wrapper" ref="cdWrapper">
-                  <div class="cd">
+                  <div class="cd" :class="cdCls">
                     <img :src="currentSong.image" alt="" class="image">
                   </div>
                 </div>
@@ -34,7 +34,7 @@
                   <i class="icon-prev"></i>
                 </div>
                 <div class="icon i-center">
-                  <i class="icon-play"></i>
+                  <i :class="playIcon" @click="togglePlaying"></i>
                 </div>
                 <div class="icon i-right">
                   <i class="icon-next"></i>
@@ -49,31 +49,45 @@
         <transition name="mini">
           <div class="mini-player" v-show="!fullScreen" @click="open">
             <div class="icon">
-              <img :src="currentSong.image" alt="" width="40" height="40">
+              <img :src="currentSong.image" alt="" width="40" height="40" :class="cdCls">
             </div>
             <div class="text">
               <h2 class="name" v-html="currentSong.name"></h2>
               <p class="desc" v-html="currentSong.singer"></p>
             </div>
             <div class="control">
+              <i :class="miniIcon" @click.stop="togglePlaying"></i>
             </div>
             <div class="control">
               <i class="icon-playlist"></i>
             </div>
           </div>
         </transition>
+        <audio :src="currentSong.url" ref="audio"></audio>
       </div>
 </template>
 
 <script type="text/ecmascript-6">
     import {mapGetters, mapMutations} from 'vuex'
+    import {prefixStyle} from 'common/js/dom'
     import animations from 'create-keyframe-animation'
+    const transform = prefixStyle('transform')
     export default {
       computed: {
+        playIcon () {
+          return this.playing ? 'icon-pause' : 'icon-play'
+        },
+        miniIcon () {
+          return this.playing ? 'icon-pause-mini' : 'icon-play-mini'
+        },
+        cdCls () {
+          return this.playing ? 'play' : 'play pause'
+        },
         ...mapGetters([
           'fullScreen',
           'playlist',
-          'currentSong'
+          'currentSong',
+          'playing'
         ])
       },
       methods: {
@@ -110,8 +124,19 @@
           animations.unregisterAnimation('move')
           this.$refs.cdWrapper.style.animatin = ''
         },
-        leave (el, done) {},
-        afterLeave () {},
+        leave (el, done) {
+          this.$refs.cdWrapper.style.transition = 'all .4s'
+          const {x, y, scale} = this._getPosAndScale()
+          this.$refs.cdWrapper.style[transform] = `translate3D(${x}px,${y}px,0) scale(${scale})`
+          this.$refs.cdWrapper.addEventListener('transitionend', done)
+        },
+        afterLeave () {
+          this.$refs.cdWrapper.style.transition = ''
+          this.$refs.cdWrapper.style[transform] = ''
+        },
+        togglePlaying () {
+          this.setPlayingState(!this.playing)
+        },
         _getPosAndScale () { // 获取位置信息和缩放信息
           const targetWidth = 40 // 小图的宽度
           const paddingLeft = 40
@@ -127,9 +152,23 @@
             scale
           }
         },
-        ...mapMutations({
-          setFullScreen: 'SET_FULL_SCREEN'
+        ...mapMutations({ // mutation的映射
+          setFullScreen: 'SET_FULL_SCREEN',
+          setPlayingState: 'SET_PLAYING_STATE'
         })
+      },
+      watch: {
+        currentSong () {
+          this.$nextTick(() => { // 不加延时就会报错。Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
+            this.$refs.audio.play()
+          })
+        },
+        playing (newPlaying) {
+          const audio = this.$refs.audio
+          this.$nextTick(() => {
+            newPlaying ? audio.play() : audio.pause()
+          })
+        }
       }
     }
 </script>
@@ -210,7 +249,7 @@
               border: 10px solid rgba(255, 255, 255, 0.1)
               border-radius: 50%
               &.play
-                animation: rotate 20s linear infinite
+                animation: rotate 20s linear infinite // cd 无限旋转
               &.pause
                 animation-play-state: paused
               .image
