@@ -1,7 +1,7 @@
 <template>
-  <div class="progress-bar" ref="progressBar">
-    <div class="bar-inner" ref="progress">
-      <div class="progress"></div>
+  <div class="progress-bar" ref="progressBar" @click="progressClick">
+    <div class="bar-inner">
+      <div class="progress" ref="progress"></div>
       <div class="progress-btn-wrapper"
            ref="progressBtn"
            @touchstart.prevent="progressTouchStart"
@@ -30,17 +30,41 @@
       this.touch = {} // 用于共享数据
     },
     methods: {
-      progressTouchStart (e) {},
-      progressTouchMove (e) {},
-      progressTouchEnd (e) {}
+      progressTouchStart (e) {
+        this.touch.initiated = true
+        this.touch.startX = e.touches[0].pageX // 横向坐标
+        this.touch.left = this.$refs.progress.clientWidth// 滚动进度条的宽度
+      },
+      progressTouchMove (e) {
+        if (!this.touch.initiated) return
+        const delta = e.touches[0].pageX - this.touch.startX
+        const offsetWidth = Math.min(Math.max(0, this.touch.left + delta))
+        this._offset(offsetWidth)
+      },
+      progressTouchEnd (e) {
+        this.touch.initiated = false
+        this._triggerPercent()
+      },
+      progressClick (e) {
+        this._offset(e.offsetX)
+        this._triggerPercent()
+      },
+      _offset (offsetWidth) {
+        this.$refs.progress.style.width = `${offsetWidth}px`
+        this.$refs.progressBtn.style[transform] = `translate3D(${offsetWidth}px,0,0)`
+      },
+      _triggerPercent () {
+        const barWidth = this.$refs.progressBar.clientWidth - progressBtnWidth
+        const percent = this.$refs.progress.clientWidth / barWidth
+        this.$emit('percentChange', percent) // 将当前percent派发出去
+      }
     },
     watch: {
       percent (newPercent) {
-        if (newPercent >= 0) {
+        if (newPercent >= 0 && !this.touch.initiated) { // 拖动时的偏移量权限大于percent给出的偏移量.拖动过程中不能再去修改偏移量
           const barWidth = this.$refs.progressBar.clientWidth - progressBtnWidth
           const offsetWidth = newPercent * barWidth // 偏移宽度
-          this.$refs.progress.style.width = `${offsetWidth}px`
-          this.$refs.progressBtn.style[transform] = `translate3D(${offsetWidth}px,0,0)`
+          this._offset(offsetWidth)
         }
       }
     }
