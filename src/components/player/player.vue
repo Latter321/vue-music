@@ -35,7 +35,7 @@
               </div>
               <div class="operators">
                 <div class="icon i-left">
-                  <i class="icon-sequence"></i>
+                  <i :class="iconMode" @click="changeMode"></i>
                 </div>
                 <div class="icon i-left" :class="disableCls">
                   <i class="icon-prev" @click="prev"></i>
@@ -72,7 +72,7 @@
             </div>
           </div>
         </transition>
-        <audio :src="currentSong.url" ref="audio" @canplay="ready" @error="error" @timeupdate="updateTime"></audio>
+        <audio :src="currentSong.url" ref="audio" @canplay="ready" @error="error" @timeupdate="updateTime" @ended="end"></audio>
       </div>
 </template>
 
@@ -82,6 +82,8 @@
     import animations from 'create-keyframe-animation'
     import ProgressBar from 'base/progress-bar/progress-bar'
     import ProgressCircle from 'base/progress-circle/progress-circle'
+    import {playMode} from 'common/js/config'
+    import {shuffle} from 'common/js/util'
 
     const transform = prefixStyle('transform')
     export default {
@@ -108,12 +110,17 @@
         percent () {
           return this.currentTime / this.currentSong.duration
         },
+        iconMode () {
+          return this.mode === playMode.sequence ? 'icon-sequence' : this.mode === playMode.loop ? 'icon-loop' : 'icon-random'
+        },
         ...mapGetters([
           'fullScreen',
           'playlist',
           'currentSong',
           'playing',
-          'currentIndex'
+          'currentIndex',
+          'mode',
+          'sequenceList'
         ])
       },
       methods: {
@@ -206,6 +213,35 @@
             this.togglePlaying()
           }
         },
+        changeMode () {
+          const mode = (this.mode + 1) % 3
+          this.setPlayMode(mode)
+          let list = null
+          if (mode === playMode.random) {
+            list = shuffle(this.sequenceList)
+          } else {
+            list = this.sequenceList
+          }
+          this.resetCurrentIndex(list)
+          this.setPlaylist(list)
+        },
+        resetCurrentIndex (list) {
+          let index = list.findIndex((item) => { // findIndex是es6的一个语法
+            return item.id === this.currentSong.id
+          })
+          this.setCurrentIndex(index)
+        },
+        end () { // 歌曲播放完毕
+          if (this.mode === playMode.loop) { // 如果是单曲循环模式，则播放完后更改播放时间到起点
+            this.loop()
+          } else {
+            this.next()
+          }
+        },
+        loop () {
+          this.$refs.audio.currentTime = 0
+          this.$refs.audio.play()
+        },
         _pad (num, n = 2) { // 第二个参数默认2.代表需要补的字符串的长度
           let len = num.toString().length
           while (len < n) {
@@ -232,11 +268,14 @@
         ...mapMutations({ // mutation的映射
           setFullScreen: 'SET_FULL_SCREEN',
           setPlayingState: 'SET_PLAYING_STATE',
-          setCurrentIndex: 'SET_CURRENT_INDEX'
+          setCurrentIndex: 'SET_CURRENT_INDEX',
+          setPlayMode: 'SET_PLAY_MODE',
+          setPlaylist: 'SET_PLAYLIST'
         })
       },
       watch: {
-        currentSong () {
+        currentSong (newSong, oldSong) {
+          if (newSong.id === oldSong.id) return
           this.$nextTick(() => { // 不加延时就会报错。Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
             this.$refs.audio.play()
           })
