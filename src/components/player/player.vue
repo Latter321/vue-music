@@ -278,6 +278,7 @@
           if (newSong.id === oldSong.id) return
           this.$nextTick(() => { // 不加延时就会报错。Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
             this.$refs.audio.play()
+            this.currentSong.getLyric()
           })
         },
         playing (newPlaying) {

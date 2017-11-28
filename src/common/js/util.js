@@ -1,12 +1,13 @@
-// 洗牌函数
+// 洗牌函数(用于随机播放打乱顺序）
 export function shuffle (arr) {
-  for (let i = 0; i < arr.length; i++) {
+  let _arr = arr.slice() // 为了不对原来的数组产生副作用，做一个副本
+  for (let i = 0; i < _arr.length; i++) {
     let j = getRandomInt(0, i)
-    let temp = arr[i]
-    arr[i] = arr[j]
-    arr[j] = temp
+    let temp = _arr[i]
+    _arr[i] = _arr[j]
+    _arr[j] = temp
   }
-  return arr
+  return _arr
 }
 
 // 返回min和max之间的一个随机整数，包含min和max [min, max]
