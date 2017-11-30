@@ -27,12 +27,14 @@
   import SongList from 'base/song-list/song-list'
   import {prefixStyle} from 'common/js/dom'
   import {mapActions} from 'vuex'
+  import {playlistMixin} from 'common/js/mixin'
 
   const RESERVE_HEIGHT = 40 // 预留高度，其实就是滚动到顶部留出来的位置高度
   const transform = prefixStyle('transform')
   const backdrop = prefixStyle('backdrop-filter')
 
   export default {
+    mixins: playlistMixin,
     props: {
       bgImage: {
         type: String,
@@ -67,6 +69,11 @@
       this.$refs.list.$el.style.top = `${this.imageHeight}px` // this.$refs.list取到的是vue的dom，所以需要再加$el转为正常dom
     },
     methods: {
+      handlePlaylist (playlist) {
+        const bottom = playlist.length > 0 ? '60px' : ''
+        this.$refs.list.$el.style.bottom = bottom
+        this.$refs.list.refresh()
+      },
       scroll (pos) {
         this.scrollY = pos.y
       },

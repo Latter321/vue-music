@@ -26,6 +26,11 @@
                     <img :src="currentSong.image" alt="" class="image">
                   </div>
                 </div>
+                <div class="playing-lyric-wrapper">
+                  <div class="playing-lyric">
+                    {{playingLyric}}
+                  </div>
+                </div>
               </div>
               <!--右侧歌词 start-->
               <scroll class="middle-r" ref="lyricList" :data="currentLyric && currentLyric.lines">
@@ -119,7 +124,8 @@
           radius: 32,
           currentLyric: null,
           currentLineNum: 0,
-          currentShow: 'cd'
+          currentShow: 'cd',
+          playingLyric: ''
         }
       },
       computed: {
@@ -201,30 +207,41 @@
         togglePlaying () {
           if (!this.songReady) return
           this.setPlayingState(!this.playing)
+          if (this.currentLyric) {
+            this.currentLyric.togglePlay()
+          }
         },
         prev () {
           if (!this.songReady) return // 设置在歌曲未准备好加载完时禁止切歌
-          let index = this.currentIndex - 1
-          if (index === -1) {
-            index = this.playlist.length - 1
+          if (this.playlist.length === 1) {
+            this.loop()
+          } else {
+            let index = this.currentIndex - 1
+            if (index === -1) {
+              index = this.playlist.length - 1
+            }
+            this.setCurrentIndex(index)
+            if (!this.playing) {
+              this.togglePlaying()
+            }
+            this.songReady = false
           }
-          this.setCurrentIndex(index)
-          if (!this.playing) {
-            this.togglePlaying()
-          }
-          this.songReady = false
         },
         next () {
           if (!this.songReady) return // 避免快速切歌时，dom未加载完而导致异常
-          let index = this.currentIndex + 1
-          if (index === this.playlist.length) {
-            index = 0
+          if (this.playlist.length === 1) {
+            this.loop()
+          } else {
+            let index = this.currentIndex + 1
+            if (index === this.playlist.length) {
+              index = 0
+            }
+            this.setCurrentIndex(index)
+            if (!this.playing) {
+              this.togglePlaying()
+            }
+            this.songReady = false
           }
-          this.setCurrentIndex(index)
-          if (!this.playing) {
-            this.togglePlaying()
-          }
-          this.songReady = false
         },
         ready () {
           this.songReady = true
@@ -240,9 +257,13 @@
           return `${minute}:${second}`
         },
         onProgressBarChange (percent) { // 实现来回拖动，音频进度相应更改
-          this.$refs.audio.currentTime = this.currentSong.duration * percent
+          const currentTime = this.currentSong.duration * percent
+          this.$refs.audio.currentTime = currentTime
           if (!this.playing) { // 如果拖动时，当前为暂停状态
             this.togglePlaying()
+          }
+          if (this.currentLyric) {
+            this.currentLyric.seek(currentTime * 1000)
           }
         },
         changeMode () {
@@ -273,6 +294,9 @@
         loop () {
           this.$refs.audio.currentTime = 0
           this.$refs.audio.play()
+          if (this.currentLyric) {
+            this.currentLyric.seek(0) // 偏移到歌曲的一开始
+          }
         },
         getLyric () {
           this.currentSong.getLyric().then((lyric) => {
@@ -280,7 +304,10 @@
             if (this.playing) {
               this.currentLyric.play()
             }
-            console.log(this.currentLyric)
+          }).catch(() => { // 获取不到歌词时
+            this.currentLyric = null
+            this.playingLyric = ''
+            this.currentLineNum = 0
           })
         },
         handleLyric ({lineNum, txt}) {
@@ -294,6 +321,7 @@
           } else {
             this.$refs.lyricList.scrollTo(0, 0, 1000)
           }
+          this.playingLyric = txt
         },
         middleTouchStart (e) {
           this.touch.initiated = true // 是否已经初始化的标志位
@@ -384,10 +412,10 @@
           if (this.currentLyric) {
             this.currentLyric.stop()
           }
-          this.$nextTick(() => { // 不加延时就会报错。Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
+          setTimeout(() => { // 不加延时就会报错。Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
             this.$refs.audio.play()
             this.getLyric()
-          })
+          }, 1000)
         },
         playing (newPlaying) {
           const audio = this.$refs.audio
