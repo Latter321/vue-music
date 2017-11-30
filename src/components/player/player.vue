@@ -16,16 +16,38 @@
               <h1 class="title" v-html="currentSong.name"></h1>
               <h2 class="subtitle" v-html="currentSong.singer"></h2>
             </div>
-            <div class="middle">
-              <div class="middle-l">
+            <div class="middle"
+                 @touchstart.prevent="middleTouchStart"
+                 @touchmove.prevent="middleTouchMove"
+                 @touchend="middleTouchEnd">
+              <div class="middle-l" ref="middleL">
                 <div class="cd-wrapper" ref="cdWrapper">
                   <div class="cd" :class="cdCls">
                     <img :src="currentSong.image" alt="" class="image">
                   </div>
                 </div>
               </div>
+              <!--右侧歌词 start-->
+              <scroll class="middle-r" ref="lyricList" :data="currentLyric && currentLyric.lines">
+                <div class="lyric-wrapper">
+                  <div v-if="currentLyric">
+                    <p ref="lyricLine"
+                       class="text"
+                       :class="{'current': currentLineNum ===index}"
+                       v-for="(line,index) in currentLyric.lines">{{line.txt}}</p>
+                  </div>
+                  <!--<div class="pure-music" v-show="isPureMusic">-->
+                    <!--<p>{{pureMusicLyric}}</p>-->
+                  <!--</div>-->
+                </div>
+              </scroll>
+              <!--右侧歌词 end-->
             </div>
             <div class="bottom">
+              <div class="dot-wrapper">
+                <span class="dot" :class="{active:currentShow==='cd'}"></span>
+                <span class="dot" :class="{active:currentShow==='lyric'}"></span>
+              </div>
               <div class="progress-wrapper">
                 <span class="time time-l">{{format(currentTime)}}</span>
                 <div class="progress-bar-wrapper">
@@ -84,14 +106,20 @@
     import ProgressCircle from 'base/progress-circle/progress-circle'
     import {playMode} from 'common/js/config'
     import {shuffle} from 'common/js/util'
+    import Lyric from 'lyric-parser'
+    import Scroll from 'base/scroll/scroll'
 
     const transform = prefixStyle('transform')
+    const transition = prefixStyle('transition')
     export default {
       data () {
         return {
           songReady: false,
           currentTime: 0,
-          radius: 32
+          radius: 32,
+          currentLyric: null,
+          currentLineNum: 0,
+          currentShow: 'cd'
         }
       },
       computed: {
@@ -122,6 +150,9 @@
           'mode',
           'sequenceList'
         ])
+      },
+      created () {
+        this.touch = {} // 不要添加getter和setter的对象定义在created
       },
       methods: {
         back () {
@@ -168,6 +199,7 @@
           this.$refs.cdWrapper.style[transform] = ''
         },
         togglePlaying () {
+          if (!this.songReady) return
           this.setPlayingState(!this.playing)
         },
         prev () {
@@ -242,6 +274,79 @@
           this.$refs.audio.currentTime = 0
           this.$refs.audio.play()
         },
+        getLyric () {
+          this.currentSong.getLyric().then((lyric) => {
+            this.currentLyric = new Lyric(lyric, this.handleLyric)
+            if (this.playing) {
+              this.currentLyric.play()
+            }
+            console.log(this.currentLyric)
+          })
+        },
+        handleLyric ({lineNum, txt}) {
+          if (!this.$refs.lyricLine) {
+            return
+          }
+          this.currentLineNum = lineNum
+          if (lineNum > 5) { // 超过5行时，显示滚动居中显示
+            let lineEl = this.$refs.lyricLine[lineNum - 5] // 需要滚动到的元素
+            this.$refs.lyricList.scrollToElement(lineEl, 1000)
+          } else {
+            this.$refs.lyricList.scrollTo(0, 0, 1000)
+          }
+        },
+        middleTouchStart (e) {
+          this.touch.initiated = true // 是否已经初始化的标志位
+          const touch = e.touches[0]
+          this.touch.startX = touch.pageX
+          this.touch.startY = touch.pageY
+        },
+        middleTouchMove (e) {
+          if (!this.touch.initiated) {
+            return
+          }
+          const touch = e.touches[0]
+          const deltaX = touch.pageX - this.touch.startX
+          const deltaY = touch.pageY - this.touch.startY // 因为歌词模块有上下滚动，所以还需要考虑纵轴的偏移量
+          if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            return // 如果为纵向滚动，则说明都不做
+          }
+          const left = this.currentShow === 'cd' ? 0 : -window.innerWidth
+          const offsetWidth = Math.min(0, Math.max(-window.innerWidth, left + deltaX))
+          this.touch.percent = Math.abs(offsetWidth / window.innerWidth)
+          this.$refs.lyricList.$el.style[transform] = `translate3D(${offsetWidth}px,0,0)`
+          this.$refs.lyricList.$el.style[transition] = 0
+          this.$refs.middleL.style.opacity = 1 - this.touch.percent
+          this.$refs.middleL.style[transition] = 0
+        },
+        middleTouchEnd () {
+          let offsetWidth
+          let opacity
+          if (this.currentShow === 'cd') {
+            if (this.touch.percent > 0.1) {
+              offsetWidth = -window.innerWidth // 最终停的位置
+              opacity = 0
+              this.currentShow = 'lyric'
+            } else {
+              offsetWidth = 0
+              opacity = 1
+            }
+          } else { // 从左向右滑
+            if (this.touch.percent < 0.9) {
+              offsetWidth = 0
+              opacity = 1
+              this.currentShow = 'cd'
+            } else {
+              opacity = 0
+              offsetWidth = -window.innerWidth
+            }
+          }
+          const time = 300
+          this.$refs.lyricList.$el.style[transform] = `translate3D(${offsetWidth}px,0,0)`
+          this.$refs.lyricList.$el.style[transition] = `${time}ms`
+          this.$refs.middleL.style.opacity = opacity
+          this.$refs.middleL.style[transition] = `${time}ms`
+        },
         _pad (num, n = 2) { // 第二个参数默认2.代表需要补的字符串的长度
           let len = num.toString().length
           while (len < n) {
@@ -276,9 +381,12 @@
       watch: {
         currentSong (newSong, oldSong) {
           if (newSong.id === oldSong.id) return
+          if (this.currentLyric) {
+            this.currentLyric.stop()
+          }
           this.$nextTick(() => { // 不加延时就会报错。Uncaught (in promise) DOMException: The play() request was interrupted by a new load request.
             this.$refs.audio.play()
-            this.currentSong.getLyric()
+            this.getLyric()
           })
         },
         playing (newPlaying) {
@@ -290,7 +398,8 @@
       },
       components: {
         ProgressBar,
-        ProgressCircle
+        ProgressCircle,
+        Scroll
       }
     }
 </script>
@@ -432,7 +541,7 @@
           display: flex
           align-items: center
           width: 80%
-          margin: 0px auto
+          margin: 0 auto
           padding: 10px 0
           .time
             color: $color-text
