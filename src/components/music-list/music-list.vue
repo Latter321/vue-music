@@ -34,7 +34,7 @@
   const backdrop = prefixStyle('backdrop-filter')
 
   export default {
-    mixins: playlistMixin,
+    mixins: [playlistMixin],
     props: {
       bgImage: {
         type: String,

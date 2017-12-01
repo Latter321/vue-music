@@ -95,6 +95,9 @@
       selectItem (item) { // 基础组件，不需要写任何业务逻辑
         this.$emit('select', item) // 把事件派发出去。通知外部组件发生了点击事件，并将item数据传出去
       },
+      refresh () {
+        this.$refs.listview.refresh()
+      },
       _scrollTo (index) {
         if (!index && index !== 0) {
           return

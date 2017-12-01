@@ -1,6 +1,6 @@
 <template>
-    <div class="singer">
-      <list-view @select="selectSinger" :data="singers"></list-view>
+    <div class="singer" ref="singer">
+      <list-view @select="selectSinger" :data="singers" ref="list"></list-view>
       <!--用来挂载子路由，singer-detail-->
       <router-view></router-view>
     </div>
@@ -12,11 +12,13 @@
     import {getSingerList} from 'api/singer'
     import {ERR_OK} from 'api/config'
     import {mapMutations} from 'vuex'
+    import {playlistMixin} from 'common/js/mixin'
 
     const HOT_NAME = '热门'
     const HOT_SINGER_LEN = 10
 
     export default {
+      mixins: [playlistMixin],
       data () {
         return {
           singers: []
@@ -26,6 +28,11 @@
         this._getSingerList()
       },
       methods: {
+        handlePlaylist (playlist) {
+          const bottom = playlist.length > 0 ? '60px' : ''
+          this.$refs.singer.style.bottom = bottom
+          this.$refs.list.refresh()
+        },
         selectSinger (item) {
           this.$router.push({ // this.$router 编程式跳转接口
             path: `singer/${item.id}`
