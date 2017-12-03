@@ -72,6 +72,22 @@ const devWebpackConfig = merge(baseWebpackConfig, {
           console.log(e)
         })
       })
+
+      // 获取热搜
+      app.get('/api/getNotKey', function (req, res) {
+        let url = 'https://c.y.qq.com/splcloud/fcgi-bin/gethotkey.fcg'
+        axios.get(url, {
+          headers: {
+            // host: 'y.qq.com' // 域名
+            referer: 'https://m.y.qq.com/' // 请求的来源
+          },
+          params: req.query // 从浏览器端发来的请求参数
+        }).then((response) => {
+          res.json(response.data)
+        }).catch((e) => {
+          console.log(e)
+        })
+      })
     }
   },
   plugins: [
